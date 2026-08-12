@@ -57,3 +57,13 @@ module "ecr" {
 
   image_retention_count = 10
 }
+
+module "ecs" {
+  source = "../../modules/ecs"
+
+  project_name = var.project_name
+  environment  = var.environment
+  aws_region   = var.aws_region
+
+  log_retention_days = 7
+}
