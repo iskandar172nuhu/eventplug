@@ -66,6 +66,18 @@ module "ecs" {
   aws_region   = var.aws_region
 
   log_retention_days = 7
+
+  ecr_repository_url = module.ecr.repository_url
+  image_tag          = "v2"
+
+  app_port = 3000
+
+  db_host = module.database.db_endpoint
+  db_port = module.database.db_port
+  db_name = module.database.db_name
+
+  database_secret_arn = module.database.master_user_secret_arn
+  auth_secret_arn     = module.app_secrets.auth_secret_arn
 }
 
 module "app_secrets" {

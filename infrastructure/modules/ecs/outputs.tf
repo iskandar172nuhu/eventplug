@@ -17,3 +17,13 @@ output "log_group_name" {
   description = "CloudWatch log group used by ECS"
   value       = aws_cloudwatch_log_group.ecs.name
 }
+
+output "task_definition_arn" {
+  description = "ARN of the EventPlug ECS task definition"
+  value       = aws_ecs_task_definition.this.arn
+}
+
+output "task_definition_family" {
+  description = "Family of the EventPlug ECS task definition"
+  value       = aws_ecs_task_definition.this.family
+}
