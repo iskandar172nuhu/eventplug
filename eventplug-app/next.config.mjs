@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
+
   images: {
     remotePatterns: [
       {
@@ -34,6 +36,7 @@ const nextConfig = {
       },
     ],
   },
+
   experimental: {
     serverActions: {
       allowedOrigins: ["localhost:3000"],

@@ -1,5 +1,7 @@
 import { Suspense } from "react"
 import { HeroSearch } from "@/components/marketing/HeroSearch"
+
+export const dynamic = "force-dynamic"
 import { PopularCategories } from "@/components/marketing/PopularCategories"
 import { FeaturedVendors } from "@/components/marketing/FeaturedVendors"
 import { PopularRentalCategories } from "@/components/marketing/PopularRentalCategories"
