@@ -8,3 +8,8 @@ output "database_secret_arn" {
   value       = module.database.master_user_secret_arn
   sensitive   = true
 }
+
+output "ecr_repository_url" {
+  description = "EventPlug ECR repository URL"
+  value       = module.ecr.repository_url
+}
