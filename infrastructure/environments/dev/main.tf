@@ -1,0 +1,1 @@
+# EventPlug dev infrastructure will be composed from reusable modules.

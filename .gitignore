@@ -50,3 +50,6 @@ yarn-error.log*
 *.key
 *.p12
 *.pfx
+
+# Editor
+.vscode/
