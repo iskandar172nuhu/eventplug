@@ -1,0 +1,535 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  CUSTOMER
+  VENDOR
+  ADMIN
+}
+
+enum VendorStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+}
+
+enum VendorType {
+  SERVICE
+  RENTAL
+  BOTH
+}
+
+enum BookingStatus {
+  PENDING
+  QUOTE_REQUESTED
+  QUOTE_SENT
+  AWAITING_DEPOSIT
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum QuoteStatus {
+  PENDING
+  SENT
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum PaymentType {
+  FULL
+  DEPOSIT
+  BALANCE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  MOCK
+  MOBILE_MONEY
+  PAYSTACK
+  HUBTEL
+}
+
+enum PricingPeriod {
+  PER_DAY
+  PER_EVENT
+}
+
+enum DisputeType {
+  VENDOR_NO_SHOW
+  ITEM_NOT_DELIVERED
+  QUALITY_ISSUE
+  PAYMENT_ISSUE
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  CLOSED
+}
+
+enum DisputeOutcome {
+  CUSTOMER_FAVOUR
+  VENDOR_FAVOUR
+  MUTUAL_RESOLUTION
+}
+
+enum MessageReadStatus {
+  UNREAD
+  READ
+}
+
+enum AvailabilityState {
+  AVAILABLE
+  LIMITED
+  UNAVAILABLE
+}
+
+// ─── Core Models ─────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  customerProfile CustomerProfile?
+  vendorProfile   VendorProfile?
+  sentMessages    Message[]        @relation("SentMessages")
+  notifications   Notification[]
+  sessions        Session[]
+
+  @@index([email])
+}
+
+model CustomerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName     String
+  phoneNumber  String
+  profilePhoto String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  bookings      Booking[]
+  quoteRequests QuoteRequest[]
+  reviews       Review[]
+  favourites    Favourite[]
+  conversations ConversationParticipant[]
+}
+
+model VendorProfile {
+  id                  String         @id @default(cuid())
+  userId              String         @unique
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName        String
+  slug                String         @unique
+  ownerFullName       String
+  phoneNumber         String
+  email               String
+  description         String?        @db.VarChar(1000)
+  logoUrl             String?
+  coverImageUrl       String?
+  vendorType          VendorType     @default(SERVICE)
+  status              VendorStatus   @default(PENDING)
+  primaryCategoryId   String
+  primaryCategory     VendorCategory @relation("PrimaryCategory", fields: [primaryCategoryId], references: [id])
+  serviceLocations    String[]
+  isPhoneVerified     Boolean        @default(false)
+  isGhanaCardVerified Boolean        @default(false)
+  isBusinessVerified  Boolean        @default(false)
+  isAddressVerified   Boolean        @default(false)
+  averageRating       Float          @default(0)
+  totalReviews        Int            @default(0)
+  totalBookings       Int            @default(0)
+  isFeatured          Boolean        @default(false)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  categories       VendorCategoryAssignment[]
+  portfolioImages  PortfolioImage[]
+  servicePackages  ServicePackage[]
+  rentalItems      RentalItem[]
+  availability     VendorAvailability[]
+  bookingsAsVendor Booking[]
+  quoteRequests    QuoteRequest[]
+  conversations    ConversationParticipant[]
+  reviews          Review[]
+  disputes         Dispute[]
+  favourites       Favourite[]
+
+  @@index([status])
+  @@index([isFeatured])
+  @@index([slug])
+}
+
+model VendorCategory {
+  id            String     @id @default(cuid())
+  name          String     @unique
+  type          VendorType
+  iconReference String?
+  displayOrder  Int        @default(0)
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  primaryVendors    VendorProfile[]            @relation("PrimaryCategory")
+  vendorAssignments VendorCategoryAssignment[]
+  servicePackages   ServicePackage[]
+  rentalItems       RentalItem[]
+
+  @@index([isActive])
+  @@index([type])
+}
+
+model VendorCategoryAssignment {
+  vendorId   String
+  categoryId String
+  vendor     VendorProfile  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category   VendorCategory @relation(fields: [categoryId], references: [id])
+
+  @@id([vendorId, categoryId])
+}
+
+model PortfolioImage {
+  id        String        @id @default(cuid())
+  vendorId  String
+  vendor    VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  url       String
+  caption   String?
+  order     Int           @default(0)
+  createdAt DateTime      @default(now())
+
+  @@index([vendorId])
+}
+
+// ─── Service and Rental Models ───────────────────────────────────────────────
+
+model ServicePackage {
+  id               String         @id @default(cuid())
+  vendorId         String
+  vendor           VendorProfile  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  categoryId       String
+  category         VendorCategory @relation(fields: [categoryId], references: [id])
+  name             String
+  description      String         @db.Text
+  includedServices String[]
+  startingPrice    Decimal        @db.Decimal(12, 2)
+  isActive         Boolean        @default(true)
+  addOns           Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  bookingItems BookingItem[]
+
+  @@index([vendorId, isActive])
+}
+
+model RentalItem {
+  id                String         @id @default(cuid())
+  vendorId          String
+  vendor            VendorProfile  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  categoryId        String
+  category          VendorCategory @relation(fields: [categoryId], references: [id])
+  name              String
+  description       String         @db.Text
+  imageUrls         String[]
+  pricePerUnit      Decimal        @db.Decimal(12, 2)
+  pricingPeriod     PricingPeriod
+  totalQuantity     Int
+  minOrderQuantity  Int            @default(1)
+  serviceLocation   String
+  deliveryAvailable Boolean        @default(false)
+  deliveryCharge    Decimal?       @db.Decimal(12, 2)
+  setupAvailable    Boolean        @default(false)
+  setupCharge       Decimal?       @db.Decimal(12, 2)
+  isActive          Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  inventory    RentalInventory[]
+  bookingItems BookingItem[]
+
+  @@index([vendorId, isActive])
+  @@index([categoryId])
+}
+
+model RentalInventory {
+  id           String     @id @default(cuid())
+  rentalItemId String
+  rentalItem   RentalItem @relation(fields: [rentalItemId], references: [id], onDelete: Cascade)
+  eventDate    DateTime   @db.Date
+  reservedQty  Int        @default(0)
+
+  @@unique([rentalItemId, eventDate])
+  @@index([rentalItemId, eventDate])
+}
+
+// ─── Availability Model ──────────────────────────────────────────────────────
+
+model VendorAvailability {
+  id            String        @id @default(cuid())
+  vendorId      String
+  vendor        VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  date          DateTime      @db.Date
+  dayOfWeek     Int?
+  isUnavailable Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+
+  @@index([vendorId, date])
+  @@index([vendorId, dayOfWeek])
+}
+
+// ─── Quote Models ────────────────────────────────────────────────────────────
+
+model QuoteRequest {
+  id              String          @id @default(cuid())
+  customerId      String
+  customer        CustomerProfile @relation(fields: [customerId], references: [id])
+  vendorId        String
+  vendor          VendorProfile   @relation(fields: [vendorId], references: [id])
+  eventType       String
+  eventDate       DateTime        @db.Date
+  eventLocation   String
+  guestCount      Int
+  description     String          @db.Text
+  budget          Decimal?        @db.Decimal(12, 2)
+  notes           String?         @db.Text
+  inspirationUrls String[]
+  status          QuoteStatus     @default(PENDING)
+  conversationId  String?         @unique
+  conversation    Conversation?   @relation(fields: [conversationId], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  quotations Quotation[]
+
+  @@index([customerId])
+  @@index([vendorId])
+}
+
+model Quotation {
+  id              String       @id @default(cuid())
+  quoteRequestId  String
+  quoteRequest    QuoteRequest @relation(fields: [quoteRequestId], references: [id])
+  totalPrice      Decimal      @db.Decimal(12, 2)
+  itemisedDetails Json
+  extras          Json?
+  travelFee       Decimal?     @db.Decimal(12, 2)
+  depositRequired Decimal      @db.Decimal(12, 2)
+  paymentNotes    String?      @db.Text
+  expiresAt       DateTime
+  status          QuoteStatus  @default(SENT)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  booking Booking?
+
+  @@index([quoteRequestId])
+}
+
+// ─── Booking Models ──────────────────────────────────────────────────────────
+
+model Booking {
+  id             String          @id @default(cuid())
+  customerId     String
+  customer       CustomerProfile @relation(fields: [customerId], references: [id])
+  vendorId       String
+  vendor         VendorProfile   @relation(fields: [vendorId], references: [id])
+  quotationId    String?         @unique
+  quotation      Quotation?      @relation(fields: [quotationId], references: [id])
+  eventDate      DateTime        @db.Date
+  eventLocation  String
+  totalAmount    Decimal         @db.Decimal(12, 2)
+  depositAmount  Decimal         @db.Decimal(12, 2)
+  amountPaid     Decimal         @db.Decimal(12, 2) @default(0)
+  status         BookingStatus   @default(PENDING)
+  notes          String?         @db.Text
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  conversationId String?         @unique
+  conversation   Conversation?   @relation(fields: [conversationId], references: [id])
+
+  bookingItems BookingItem[]
+  payments     Payment[]
+  review       Review?
+  dispute      Dispute?
+
+  @@index([customerId, status])
+  @@index([vendorId, status])
+  @@index([eventDate])
+}
+
+model BookingItem {
+  id               String          @id @default(cuid())
+  bookingId        String
+  booking          Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  servicePackageId String?
+  servicePackage   ServicePackage? @relation(fields: [servicePackageId], references: [id])
+  rentalItemId     String?
+  rentalItem       RentalItem?     @relation(fields: [rentalItemId], references: [id])
+  description      String
+  quantity         Int             @default(1)
+  unitPrice        Decimal         @db.Decimal(12, 2)
+  totalPrice       Decimal         @db.Decimal(12, 2)
+  deliveryCharge   Decimal?        @db.Decimal(12, 2)
+  setupCharge      Decimal?        @db.Decimal(12, 2)
+
+  @@index([bookingId])
+}
+
+// ─── Payment Model ───────────────────────────────────────────────────────────
+
+model Payment {
+  id            String        @id @default(cuid())
+  bookingId     String
+  booking       Booking       @relation(fields: [bookingId], references: [id])
+  amount        Decimal       @db.Decimal(12, 2)
+  paymentType   PaymentType
+  paymentMethod PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  providerRef   String?
+  metadata      Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([bookingId])
+}
+
+// ─── Messaging Models ────────────────────────────────────────────────────────
+
+model Conversation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+  quoteRequest QuoteRequest?
+  booking      Booking?
+
+  @@index([updatedAt])
+}
+
+model ConversationParticipant {
+  id                String           @id @default(cuid())
+  conversationId    String
+  conversation      Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  customerProfileId String?
+  customerProfile   CustomerProfile? @relation(fields: [customerProfileId], references: [id])
+  vendorProfileId   String?
+  vendorProfile     VendorProfile?   @relation(fields: [vendorProfileId], references: [id])
+
+  @@unique([conversationId, customerProfileId, vendorProfileId])
+  @@index([conversationId])
+}
+
+model Message {
+  id             String            @id @default(cuid())
+  conversationId String
+  conversation   Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User              @relation("SentMessages", fields: [senderId], references: [id])
+  body           String            @db.Text
+  readStatus     MessageReadStatus @default(UNREAD)
+  sentAt         DateTime          @default(now())
+
+  @@index([conversationId, sentAt])
+  @@index([senderId])
+}
+
+// ─── Review Model ────────────────────────────────────────────────────────────
+
+model Review {
+  id         String          @id @default(cuid())
+  bookingId  String          @unique
+  booking    Booking         @relation(fields: [bookingId], references: [id])
+  customerId String
+  customer   CustomerProfile @relation(fields: [customerId], references: [id])
+  vendorId   String
+  vendor     VendorProfile   @relation(fields: [vendorId], references: [id])
+  rating     Int
+  reviewText String          @db.Text
+  isVisible  Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+
+  @@index([vendorId, isVisible])
+}
+
+// ─── Dispute Model ───────────────────────────────────────────────────────────
+
+model Dispute {
+  id             String          @id @default(cuid())
+  bookingId      String          @unique
+  booking        Booking         @relation(fields: [bookingId], references: [id])
+  vendorId       String
+  vendor         VendorProfile   @relation(fields: [vendorId], references: [id])
+  raisedBy       String
+  disputeType    DisputeType
+  description    String          @db.Text
+  evidenceUrls   String[]
+  status         DisputeStatus   @default(OPEN)
+  outcome        DisputeOutcome?
+  resolutionNote String?         @db.Text
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([status])
+}
+
+// ─── Supporting Models ───────────────────────────────────────────────────────
+
+model Favourite {
+  customerId String
+  customer   CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vendorId   String
+  vendor     VendorProfile   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  createdAt  DateTime        @default(now())
+
+  @@id([customerId, vendorId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires      DateTime
+
+  @@index([userId])
+}
