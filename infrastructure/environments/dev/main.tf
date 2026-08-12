@@ -67,3 +67,10 @@ module "ecs" {
 
   log_retention_days = 7
 }
+
+module "app_secrets" {
+  source = "../../modules/app-secrets"
+
+  project_name = var.project_name
+  environment  = var.environment
+}

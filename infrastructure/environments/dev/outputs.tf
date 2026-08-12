@@ -13,3 +13,8 @@ output "ecr_repository_url" {
   description = "EventPlug ECR repository URL"
   value       = module.ecr.repository_url
 }
+
+output "auth_secret_arn" {
+  description = "Secrets Manager ARN for EventPlug Auth.js secret"
+  value       = module.app_secrets.auth_secret_arn
+}
