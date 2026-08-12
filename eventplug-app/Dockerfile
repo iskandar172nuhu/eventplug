@@ -38,8 +38,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Copy public assets
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
+# Copy production startup script
+COPY --from=builder --chown=nextjs:nodejs /app/start.js ./start.js
+
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["node", "start.js"]
