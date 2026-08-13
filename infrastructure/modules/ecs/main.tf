@@ -151,3 +151,85 @@ resource "aws_ecs_task_definition" "this" {
     Name = "${var.project_name}-${var.environment}-task"
   }
 }
+
+resource "aws_lb" "this" {
+  name               = "${var.project_name}-${var.environment}-alb"
+  internal           = false
+  load_balancer_type = "application"
+
+  security_groups = [var.alb_security_group_id]
+  subnets         = var.public_subnet_ids
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-alb"
+  }
+}
+
+resource "aws_lb_target_group" "this" {
+  name        = "${var.project_name}-${var.environment}-tg"
+  port        = var.app_port
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    path                = "/api/health"
+    protocol            = "HTTP"
+    port                = "traffic-port"
+    matcher             = "200"
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    interval            = 30
+    timeout             = 5
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-tg"
+  }
+}
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.this.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.this.arn
+  }
+}
+
+resource "aws_ecs_service" "this" {
+  name            = "${var.project_name}-${var.environment}-service"
+  cluster         = aws_ecs_cluster.this.id
+  task_definition = aws_ecs_task_definition.this.arn
+
+  desired_count = var.desired_count
+  launch_type   = "FARGATE"
+
+  network_configuration {
+    subnets          = var.public_subnet_ids
+    security_groups  = [var.ecs_security_group_id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.this.arn
+    container_name   = "${var.project_name}-${var.environment}"
+    container_port   = var.app_port
+  }
+
+  health_check_grace_period_seconds = 60
+
+  depends_on = [
+    aws_lb_listener.http,
+    aws_iam_role_policy.ecs_secrets
+  ]
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-service"
+  }
+}

@@ -60,3 +60,29 @@ variable "auth_secret_arn" {
   description = "ARN of the Auth.js secret"
   type        = string
 }
+
+variable "vpc_id" {
+  description = "VPC ID for the ALB and target group"
+  type        = string
+}
+
+variable "public_subnet_ids" {
+  description = "Public subnet IDs for the ALB and ECS tasks"
+  type        = list(string)
+}
+
+variable "alb_security_group_id" {
+  description = "Security group ID for the ALB"
+  type        = string
+}
+
+variable "ecs_security_group_id" {
+  description = "Security group ID for ECS tasks"
+  type        = string
+}
+
+variable "desired_count" {
+  description = "Number of ECS tasks to run"
+  type        = number
+  default     = 1
+}

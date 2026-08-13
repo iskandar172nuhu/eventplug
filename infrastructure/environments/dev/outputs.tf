@@ -18,3 +18,8 @@ output "auth_secret_arn" {
   description = "Secrets Manager ARN for EventPlug Auth.js secret"
   value       = module.app_secrets.auth_secret_arn
 }
+
+output "alb_dns_name" {
+  description = "Public ALB DNS name for EventPlug"
+  value       = module.ecs.alb_dns_name
+}

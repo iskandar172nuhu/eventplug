@@ -68,7 +68,7 @@ module "ecs" {
   log_retention_days = 7
 
   ecr_repository_url = module.ecr.repository_url
-  image_tag          = "v2"
+  image_tag          = "v6"
 
   app_port = 3000
 
@@ -78,6 +78,15 @@ module "ecs" {
 
   database_secret_arn = module.database.master_user_secret_arn
   auth_secret_arn     = module.app_secrets.auth_secret_arn
+
+  vpc_id = module.networking.vpc_id
+
+  public_subnet_ids = module.networking.public_subnet_ids
+
+  alb_security_group_id = module.security.alb_security_group_id
+  ecs_security_group_id = module.security.ecs_security_group_id
+
+  desired_count = 1
 }
 
 module "app_secrets" {

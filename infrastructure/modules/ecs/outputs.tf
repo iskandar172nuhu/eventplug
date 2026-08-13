@@ -27,3 +27,23 @@ output "task_definition_family" {
   description = "Family of the EventPlug ECS task definition"
   value       = aws_ecs_task_definition.this.family
 }
+
+output "alb_dns_name" {
+  description = "DNS name of the EventPlug Application Load Balancer"
+  value       = aws_lb.this.dns_name
+}
+
+output "alb_arn" {
+  description = "ARN of the EventPlug Application Load Balancer"
+  value       = aws_lb.this.arn
+}
+
+output "target_group_arn" {
+  description = "ARN of the EventPlug target group"
+  value       = aws_lb_target_group.this.arn
+}
+
+output "service_name" {
+  description = "Name of the EventPlug ECS service"
+  value       = aws_ecs_service.this.name
+}

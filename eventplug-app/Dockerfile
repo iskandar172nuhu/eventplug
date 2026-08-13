@@ -18,6 +18,12 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
+# Create a minimal Prisma CLI install for the production image
+RUN mkdir -p /prisma-cli \
+    && cd /prisma-cli \
+    && echo '{"name":"prisma-cli","private":true}' > package.json \
+    && npm install prisma@6.19.3 --save-exact
+
 # ---------- Production ----------
 FROM base AS runner
 WORKDIR /app
@@ -40,6 +46,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Copy production startup script
 COPY --from=builder --chown=nextjs:nodejs /app/start.js ./start.js
+
+# Copy Prisma schema and migrations for `npx prisma migrate deploy`
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+
+# Copy Prisma CLI (pre-installed, no runtime download needed)
+COPY --from=builder --chown=nextjs:nodejs /prisma-cli/node_modules ./node_modules
 
 USER nextjs
 
