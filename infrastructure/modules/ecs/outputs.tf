@@ -47,3 +47,13 @@ output "service_name" {
   description = "Name of the EventPlug ECS service"
   value       = aws_ecs_service.this.name
 }
+
+output "cluster_arn" {
+  description = "ARN of the EventPlug ECS cluster"
+  value       = aws_ecs_cluster.this.arn
+}
+
+output "service_arn" {
+  description = "ARN of the EventPlug ECS service"
+  value       = aws_ecs_service.this.id
+}

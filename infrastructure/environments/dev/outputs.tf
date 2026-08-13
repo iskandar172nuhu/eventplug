@@ -23,3 +23,8 @@ output "alb_dns_name" {
   description = "Public ALB DNS name for EventPlug"
   value       = module.ecs.alb_dns_name
 }
+
+output "github_actions_role_arn" {
+  description = "IAM role assumed by GitHub Actions through OIDC"
+  value       = module.github_actions.role_arn
+}

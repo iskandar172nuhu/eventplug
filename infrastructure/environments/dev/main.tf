@@ -95,3 +95,21 @@ module "app_secrets" {
   project_name = var.project_name
   environment  = var.environment
 }
+
+module "github_actions" {
+  source = "../../modules/github-actions"
+
+  project_name = var.project_name
+  environment  = var.environment
+
+  github_repository = "iskandar172nuhu/eventplug"
+
+  oidc_provider_arn = "arn:aws:iam::433806445659:oidc-provider/token.actions.githubusercontent.com"
+
+  ecr_repository_arn = module.ecr.repository_arn
+
+  ecs_cluster_arn = module.ecs.cluster_arn
+  ecs_service_arn = module.ecs.service_arn
+
+  ecs_task_execution_role_arn = module.ecs.task_execution_role_arn
+}
