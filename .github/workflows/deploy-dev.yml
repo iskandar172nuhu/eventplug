@@ -1,0 +1,123 @@
+name: Deploy EventPlug Dev
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "eventplug-app/**"
+      - ".github/workflows/deploy-dev.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+  ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+  ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+  CONTAINER_NAME: ${{ vars.CONTAINER_NAME }}
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+  ECS_TASK_DEFINITION: ${{ vars.ECS_TASK_DEFINITION }}
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: image
+        run: |
+          echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "uri=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            -t "${{ steps.image.outputs.uri }}" \
+            ./eventplug-app
+
+      - name: Push Docker image
+        run: |
+          docker push "${{ steps.image.outputs.uri }}"
+
+      - name: Get current ECS task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "${{ env.ECS_TASK_DEFINITION }}" \
+            --query taskDefinition \
+            > task-definition.json
+
+      - name: Remove read-only ECS task definition fields
+        run: |
+          jq 'del(
+            .taskDefinitionArn,
+            .revision,
+            .status,
+            .requiresAttributes,
+            .compatibilities,
+            .registeredAt,
+            .registeredBy,
+            .enableFaultInjection
+          )' task-definition.json > task-definition-clean.json
+
+      - name: Update container image
+        run: |
+          jq \
+            --arg IMAGE "${{ steps.image.outputs.uri }}" \
+            --arg CONTAINER "${{ env.CONTAINER_NAME }}" \
+            '.containerDefinitions |= map(
+              if .name == $CONTAINER
+              then .image = $IMAGE
+              else .
+              end
+            )' \
+            task-definition-clean.json > task-definition-new.json
+
+      - name: Register new ECS task definition
+        id: register
+        run: |
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://task-definition-new.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          echo "task_definition_arn=$TASK_DEF_ARN" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy ECS service
+        run: |
+          aws ecs update-service \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --service "${{ env.ECS_SERVICE }}" \
+            --task-definition "${{ steps.register.outputs.task_definition_arn }}" \
+            --force-new-deployment
+
+      - name: Wait for ECS service stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --services "${{ env.ECS_SERVICE }}"
+
+      - name: Show deployment status
+        run: |
+          aws ecs describe-services \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --services "${{ env.ECS_SERVICE }}" \
+            --query 'services[0].{Status:status,Desired:desiredCount,Running:runningCount,TaskDefinition:taskDefinition}' \
+            --output table
