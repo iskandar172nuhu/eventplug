@@ -32,7 +32,7 @@ data "aws_iam_policy_document" "github_assume_role" {
       variable = "token.actions.githubusercontent.com:sub"
 
       values = [
-        "repo:${var.github_repository}:ref:refs/heads/main"
+        "repo:iskandar172nuhu@249490272/eventplug@1331463262:ref:refs/heads/main"
       ]
     }
   }
