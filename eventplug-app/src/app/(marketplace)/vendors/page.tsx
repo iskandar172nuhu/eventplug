@@ -98,7 +98,6 @@ export default async function VendorsPage({ searchParams }: VendorsPageProps) {
               action={
                 <Button
                   variant="outline"
-                  onClick={() => {}}
                   asChild
                 >
                   <a href="/vendors">Clear all filters</a>
