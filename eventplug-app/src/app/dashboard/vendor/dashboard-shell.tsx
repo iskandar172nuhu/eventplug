@@ -12,6 +12,7 @@ import {
   Star,
   BarChart3,
   Building2,
+  Settings,
 } from "lucide-react"
 
 import { DashboardLayout, type NavItem } from "@/components/dashboard/DashboardLayout"
@@ -71,6 +72,11 @@ const vendorNavItems: NavItem[] = [
     label: "Business Profile",
     href: "/dashboard/vendor/profile",
     icon: <Building2 />,
+  },
+  {
+    label: "Settings",
+    href: "/dashboard/vendor/settings",
+    icon: <Settings />,
   },
 ]
 

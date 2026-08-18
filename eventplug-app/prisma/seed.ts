@@ -21,19 +21,28 @@ async function main() {
 
   // ─── 2. Categories ───────────────────────────────────────────────────────────
   const serviceCategories = [
+    "Event Planner",
+    "Event Decorator",
     "Wedding Decoration",
     "Event Planning",
     "Photography",
     "Catering",
     "DJ & Music",
+    "DJ & Entertainment",
     "MC Services",
     "Hair & Makeup",
+    "Makeup & Beauty",
+    "Photography & Videography",
     "Videography",
     "Security",
     "Florist",
     "Ushering",
     "Sound Engineering",
     "Lighting",
+    "Cakes",
+    "Transportation",
+    "Venues",
+    "Other",
   ];
 
   const rentalCategories = [
@@ -79,7 +88,7 @@ async function main() {
     });
     categories[name] = cat.id;
   }
-  console.log("✅ 22 categories created");
+  console.log(`✅ ${serviceCategories.length + rentalCategories.length} categories created`);
 
   // ─── 3. Vendor Accounts ──────────────────────────────────────────────────────
   const vendorPasswordHash = await hash("Vendor1234", 12);

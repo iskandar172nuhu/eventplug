@@ -1,14 +1,3 @@
-import {
-  LayoutDashboard,
-  CalendarCheck,
-  MessageSquare,
-  Heart,
-  CreditCard,
-  Star,
-  User,
-  FileText,
-} from "lucide-react"
-
 import { getSession } from "@/lib/auth/guards"
 import { ToastProvider } from "@/components/shared"
 import { CustomerDashboardShell } from "./dashboard-shell"

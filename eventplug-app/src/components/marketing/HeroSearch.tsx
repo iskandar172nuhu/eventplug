@@ -44,9 +44,11 @@ export function HeroSearch() {
   const [categoryId, setCategoryId] = React.useState("")
   const [categories, setCategories] = React.useState<Category[]>([])
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false)
+  const [categoriesLoading, setCategoriesLoading] = React.useState(true)
 
   React.useEffect(() => {
     async function fetchCategories() {
+      setCategoriesLoading(true)
       try {
         const res = await fetch("/api/vendors/categories")
         if (res.ok) {
@@ -55,6 +57,8 @@ export function HeroSearch() {
         }
       } catch {
         // Silently fail — categories will just be empty
+      } finally {
+        setCategoriesLoading(false)
       }
     }
     fetchCategories()
@@ -64,7 +68,7 @@ export function HeroSearch() {
     const params = new URLSearchParams()
     if (location) params.set("location", location)
     if (date) params.set("date", format(date, "yyyy-MM-dd"))
-    if (categoryId) params.set("categoryId", categoryId)
+    if (categoryId && categoryId !== "all") params.set("categoryId", categoryId)
     router.push(`/vendors?${params.toString()}`)
   }
 
@@ -130,9 +134,10 @@ export function HeroSearch() {
             </label>
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger className="h-12 text-base">
-                <SelectValue placeholder="All categories" />
+                <SelectValue placeholder={categoriesLoading ? "Loading..." : "All categories"} />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
                     {cat.name}

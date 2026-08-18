@@ -50,6 +50,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/start.js ./start.js
 # Copy Prisma schema and migrations for `npx prisma migrate deploy`
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
+# Copy production scripts (e.g. seed-categories.js)
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+
 # Copy Prisma CLI (pre-installed, no runtime download needed)
 COPY --from=builder --chown=nextjs:nodejs /prisma-cli/node_modules ./node_modules
 

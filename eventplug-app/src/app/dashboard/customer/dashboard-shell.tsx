@@ -9,6 +9,7 @@ import {
   Star,
   User,
   FileText,
+  Settings,
 } from "lucide-react"
 
 import { DashboardLayout, type NavItem } from "@/components/dashboard/DashboardLayout"
@@ -53,6 +54,11 @@ const customerNavItems: NavItem[] = [
     label: "Profile",
     href: "/dashboard/customer/profile",
     icon: <User />,
+  },
+  {
+    label: "Settings",
+    href: "/dashboard/customer/settings",
+    icon: <Settings />,
   },
 ]
 

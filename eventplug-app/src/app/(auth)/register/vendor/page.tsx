@@ -65,6 +65,8 @@ export default function VendorRegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [success, setSuccess] = useState(false)
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+  const [categoriesError, setCategoriesError] = useState(false)
 
   const form = useForm<VendorRegisterInput>({
     resolver: zodResolver(VendorRegisterSchema),
@@ -82,14 +84,20 @@ export default function VendorRegisterPage() {
 
   useEffect(() => {
     async function fetchCategories() {
+      setCategoriesLoading(true)
+      setCategoriesError(false)
       try {
         const res = await fetch("/api/vendors/categories")
         if (res.ok) {
           const data = await res.json()
           setCategories(data)
+        } else {
+          setCategoriesError(true)
         }
       } catch {
-        // Categories will be empty, user can still try to register
+        setCategoriesError(true)
+      } finally {
+        setCategoriesLoading(false)
       }
     }
     fetchCategories()
@@ -280,15 +288,31 @@ export default function VendorRegisterPage() {
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
+                        <SelectValue placeholder={
+                          categoriesLoading
+                            ? "Loading categories..."
+                            : categoriesError
+                            ? "Failed to load categories"
+                            : categories.length === 0
+                            ? "No categories available"
+                            : "Select a category"
+                        } />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
+                      {categoriesLoading ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">Loading...</div>
+                      ) : categoriesError ? (
+                        <div className="px-2 py-1.5 text-sm text-destructive">Failed to load categories. Please refresh.</div>
+                      ) : categories.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">No categories available</div>
+                      ) : (
+                        categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
