@@ -53,10 +53,16 @@ export function HeroSearch() {
         const res = await fetch("/api/vendors/categories")
         if (res.ok) {
           const data = await res.json()
-          setCategories(data)
+          if (Array.isArray(data)) {
+            setCategories(data)
+          } else {
+            console.error("[HeroSearch] Unexpected categories response format:", data)
+          }
+        } else {
+          console.error("[HeroSearch] Categories fetch failed with status:", res.status)
         }
-      } catch {
-        // Silently fail — categories will just be empty
+      } catch (err) {
+        console.error("[HeroSearch] Categories fetch error:", err)
       } finally {
         setCategoriesLoading(false)
       }
@@ -138,11 +144,12 @@ export function HeroSearch() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
+                {categories.length > 0 &&
+                  categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>

@@ -90,11 +90,18 @@ export default function VendorRegisterPage() {
         const res = await fetch("/api/vendors/categories")
         if (res.ok) {
           const data = await res.json()
-          setCategories(data)
+          if (Array.isArray(data)) {
+            setCategories(data)
+          } else {
+            console.error("[VendorRegister] Unexpected categories response format:", data)
+            setCategoriesError(true)
+          }
         } else {
+          console.error("[VendorRegister] Categories fetch failed with status:", res.status)
           setCategoriesError(true)
         }
-      } catch {
+      } catch (err) {
+        console.error("[VendorRegister] Categories fetch error:", err)
         setCategoriesError(true)
       } finally {
         setCategoriesLoading(false)
@@ -285,7 +292,11 @@ export default function VendorRegisterPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Primary Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={categoriesLoading || categories.length === 0}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={
@@ -300,21 +311,18 @@ export default function VendorRegisterPage() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {categoriesLoading ? (
-                        <div className="px-2 py-1.5 text-sm text-muted-foreground">Loading...</div>
-                      ) : categoriesError ? (
-                        <div className="px-2 py-1.5 text-sm text-destructive">Failed to load categories. Please refresh.</div>
-                      ) : categories.length === 0 ? (
-                        <div className="px-2 py-1.5 text-sm text-muted-foreground">No categories available</div>
-                      ) : (
-                        categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))
-                      )}
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  {categoriesError && (
+                    <p className="text-xs text-destructive">
+                      Could not load categories. Please refresh the page.
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
