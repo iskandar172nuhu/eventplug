@@ -22,7 +22,7 @@ RUN npm run build
 RUN mkdir -p /prisma-cli \
     && cd /prisma-cli \
     && echo '{"name":"prisma-cli","private":true}' > package.json \
-    && npm install prisma@6.19.3 --save-exact
+    && npm install prisma@6.19.3 bcryptjs@2.4.3 --save-exact
 
 # ---------- Production ----------
 FROM base AS runner
