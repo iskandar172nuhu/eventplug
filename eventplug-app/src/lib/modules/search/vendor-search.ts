@@ -15,6 +15,19 @@ export interface VendorSearchParams {
   pageSize?: number
 }
 
+// Map city names to regions they belong to so that searching "Accra" matches
+// vendors who registered with the region "Greater Accra", etc.
+const CITY_TO_REGIONS: Record<string, string[]> = {
+  Accra: ["Greater Accra", "Accra"],
+  Tema: ["Greater Accra", "Tema"],
+  Kumasi: ["Ashanti", "Kumasi"],
+  "Cape Coast": ["Central", "Cape Coast"],
+  Takoradi: ["Western", "Takoradi"],
+  Tamale: ["Northern", "Tamale"],
+  Koforidua: ["Eastern", "Koforidua"],
+  Ho: ["Volta", "Ho"],
+}
+
 export async function searchVendors(params: VendorSearchParams) {
   const {
     location,
@@ -45,36 +58,59 @@ export async function searchVendors(params: VendorSearchParams) {
     unavailableVendorIds = unavailable.map((v) => v.vendorId)
   }
 
-  const where: Prisma.VendorProfileWhereInput = {
-    status: "APPROVED",
-    ...(unavailableVendorIds.length > 0 && {
-      id: { notIn: unavailableVendorIds },
-    }),
-    ...(location && { serviceLocations: { has: location } }),
-    ...(categoryId && {
+  // Build location filter: match the city itself OR the region it belongs to
+  let locationFilter: Prisma.VendorProfileWhereInput | undefined
+  if (location) {
+    const searchTerms = CITY_TO_REGIONS[location] ?? [location]
+    locationFilter = {
+      OR: searchTerms.map((term) => ({ serviceLocations: { has: term } })),
+    }
+  }
+
+  // Build the WHERE clause using AND to avoid OR key conflicts
+  const conditions: Prisma.VendorProfileWhereInput[] = [
+    { status: "APPROVED" },
+  ]
+
+  if (unavailableVendorIds.length > 0) {
+    conditions.push({ id: { notIn: unavailableVendorIds } })
+  }
+
+  if (locationFilter) {
+    conditions.push(locationFilter)
+  }
+
+  if (categoryId) {
+    conditions.push({
       OR: [
         { primaryCategoryId: categoryId },
         { categories: { some: { categoryId } } },
       ],
-    }),
-    ...(minRating && { averageRating: { gte: minRating } }),
-    ...(verified && { isPhoneVerified: true, isBusinessVerified: true }),
-    ...(minPrice || maxPrice
-      ? {
-          servicePackages: {
-            some: {
-              isActive: true,
-              ...(minPrice && { startingPrice: { gte: minPrice } }),
-              ...(maxPrice && { startingPrice: { lte: maxPrice } }),
-            },
-          },
-        }
-      : {
-          OR: [
-            { servicePackages: { some: { isActive: true } } },
-            { rentalItems: { some: { isActive: true } } },
-          ],
-        }),
+    })
+  }
+
+  if (minRating) {
+    conditions.push({ averageRating: { gte: minRating } })
+  }
+
+  if (verified) {
+    conditions.push({ isPhoneVerified: true, isBusinessVerified: true })
+  }
+
+  if (minPrice || maxPrice) {
+    conditions.push({
+      servicePackages: {
+        some: {
+          isActive: true,
+          ...(minPrice && { startingPrice: { gte: minPrice } }),
+          ...(maxPrice && { startingPrice: { lte: maxPrice } }),
+        },
+      },
+    })
+  }
+
+  const where: Prisma.VendorProfileWhereInput = {
+    AND: conditions,
   }
 
   // Build order by
