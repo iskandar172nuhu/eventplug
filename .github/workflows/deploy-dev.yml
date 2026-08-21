@@ -64,7 +64,7 @@ jobs:
             --query taskDefinition \
             > task-definition.json
 
-            - name: Remove read-only ECS task definition fields
+      - name: Remove read-only ECS task definition fields
         run: |
           jq '
             del(
