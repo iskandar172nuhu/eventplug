@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 import { HeroSearch } from "@/components/marketing/HeroSearch"
+import { SiteHeader } from "@/components/layout/SiteHeader"
 
 export const dynamic = "force-dynamic"
 import { PopularCategories } from "@/components/marketing/PopularCategories"
@@ -26,7 +27,9 @@ function CategoriesSkeleton() {
 
 export default function HomePage() {
   return (
-    <main>
+    <>
+      <SiteHeader />
+      <main>
       {/* Hero Section */}
       <section className="relative min-h-[600px] md:min-h-[700px] flex items-center justify-center px-4 overflow-hidden">
         {/* Background Image */}
@@ -85,5 +88,6 @@ export default function HomePage() {
       {/* Footer */}
       <Footer />
     </main>
+    </>
   )
 }

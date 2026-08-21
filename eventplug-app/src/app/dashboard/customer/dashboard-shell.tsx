@@ -10,6 +10,7 @@ import {
   User,
   FileText,
   Settings,
+  Search,
 } from "lucide-react"
 
 import { DashboardLayout, type NavItem } from "@/components/dashboard/DashboardLayout"
@@ -19,6 +20,11 @@ const customerNavItems: NavItem[] = [
     label: "Overview",
     href: "/dashboard/customer",
     icon: <LayoutDashboard />,
+  },
+  {
+    label: "Find Vendors",
+    href: "/vendors",
+    icon: <Search />,
   },
   {
     label: "My Bookings",

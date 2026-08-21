@@ -4,6 +4,7 @@ import { addMonths, format, startOfToday, eachDayOfInterval } from "date-fns"
 import { db } from "@/lib/db"
 import { getSession } from "@/lib/auth/guards"
 import { ProfileHeader } from "@/components/vendor-profile/ProfileHeader"
+import { VendorActions } from "@/components/vendor-profile/VendorActions"
 import { ServicePackageCard } from "@/components/vendor-profile/ServicePackageCard"
 import { PortfolioGallery } from "@/components/vendor-profile/PortfolioGallery"
 import { ReviewsList } from "@/components/vendor-profile/ReviewsList"
@@ -39,6 +40,8 @@ export default async function VendorProfilePage({ params }: VendorProfilePagePro
 
   const session = await getSession()
   const isAuthenticated = !!session
+  const isCustomer = session?.user?.role === "CUSTOMER"
+  const hasBookableServices = vendor.servicePackages.length > 0 || vendor.rentalItems.length > 0
 
   // Compute unavailable and limited dates for the availability calendar
   const today = startOfToday()
@@ -94,7 +97,19 @@ export default async function VendorProfilePage({ params }: VendorProfilePagePro
 
   return (
     <div className="container mx-auto py-6 space-y-8 max-w-5xl">
-      <ProfileHeader vendor={vendor} isAuthenticated={isAuthenticated} />
+      <ProfileHeader
+        vendor={vendor}
+        isAuthenticated={isAuthenticated}
+        actions={
+          <VendorActions
+            vendorId={vendor.id}
+            vendorSlug={vendor.slug}
+            vendorName={vendor.businessName}
+            isAuthenticated={isCustomer}
+            hasBookableServices={hasBookableServices}
+          />
+        }
+      />
 
       {/* Service Packages */}
       {vendor.servicePackages.length > 0 && (

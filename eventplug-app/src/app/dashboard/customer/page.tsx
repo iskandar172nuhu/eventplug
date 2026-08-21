@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { CalendarCheck, FileText, MessageSquare, CalendarDays } from "lucide-react"
+import { CalendarCheck, FileText, MessageSquare, CalendarDays, Search } from "lucide-react"
 import { addDays } from "date-fns"
 
 import { getSession } from "@/lib/auth/guards"
@@ -8,6 +8,7 @@ import { db } from "@/lib/db"
 import { getUnreadCount } from "@/lib/modules/messaging/unread"
 import { StatCard } from "@/components/dashboard/StatCard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { BookingStatusBadge } from "@/components/dashboard/BookingStatusBadge"
 
 export default async function CustomerDashboardPage() {
@@ -87,6 +88,24 @@ export default async function CustomerDashboardPage() {
           description="Within 30 days"
         />
       </div>
+
+      {/* Find Vendors CTA */}
+      <Card className="bg-brand-primary/5 border-brand-primary/20">
+        <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6">
+          <div className="space-y-1">
+            <h3 className="font-semibold text-lg">Ready to plan your event?</h3>
+            <p className="text-sm text-muted-foreground">
+              Browse trusted vendors, compare prices, and request quotes.
+            </p>
+          </div>
+          <Button asChild size="lg">
+            <Link href="/vendors">
+              <Search className="h-4 w-4 mr-2" />
+              Find Vendors
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

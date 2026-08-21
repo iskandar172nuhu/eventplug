@@ -1,7 +1,6 @@
 import Link from "next/link"
-import { Star, MapPin, BadgeCheck, MessageSquare, CalendarCheck } from "lucide-react"
+import { Star, MapPin, BadgeCheck, CalendarCheck } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
 interface ProfileHeaderProps {
@@ -21,21 +20,15 @@ interface ProfileHeaderProps {
     isAddressVerified: boolean
   }
   isAuthenticated?: boolean
+  actions?: React.ReactNode
 }
 
-export function ProfileHeader({ vendor, isAuthenticated = false }: ProfileHeaderProps) {
+export function ProfileHeader({ vendor, isAuthenticated = false, actions }: ProfileHeaderProps) {
   const isFullyVerified =
     vendor.isPhoneVerified &&
     vendor.isGhanaCardVerified &&
     vendor.isBusinessVerified &&
     vendor.isAddressVerified
-
-  const callbackUrl = `/vendors/${vendor.slug}`
-  const loginRedirect = `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
-
-  const quoteHref = isAuthenticated ? `#quote-request` : loginRedirect
-  const bookHref = isAuthenticated ? `#book-now` : loginRedirect
-  const messageHref = isAuthenticated ? `#message` : loginRedirect
 
   return (
     <div className="relative">
@@ -110,20 +103,7 @@ export function ProfileHeader({ vendor, isAuthenticated = false }: ProfileHeader
           )}
 
           {/* CTA Buttons */}
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Button asChild>
-              <Link href={quoteHref}>Request Quote</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href={bookHref}>Book Now</Link>
-            </Button>
-            <Button variant="ghost" asChild>
-              <Link href={messageHref}>
-                <MessageSquare className="h-4 w-4 mr-1" />
-                Message
-              </Link>
-            </Button>
-          </div>
+          {actions}
         </div>
       </div>
     </div>
