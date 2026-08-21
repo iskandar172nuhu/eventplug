@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { MessageSquare, CalendarIcon } from "lucide-react"
+import { MessageSquare } from "lucide-react"
 import { toast } from "sonner"
 
 import { submitQuoteRequestAction } from "@/actions/quote"
@@ -120,19 +120,6 @@ export function VendorActions({
     }
   }
 
-  function handleBookNow() {
-    if (!isAuthenticated) {
-      router.push(loginRedirect)
-      return
-    }
-    if (!hasBookableServices) {
-      toast.info("This vendor has not enabled direct booking yet. Request a quote instead.")
-      return
-    }
-    // If vendor has bookable services, open quote for now (direct booking is quote-based)
-    setQuoteOpen(true)
-  }
-
   return (
     <div className="flex flex-wrap gap-3 pt-2">
       {/* Request Quote */}
@@ -211,10 +198,18 @@ export function VendorActions({
         </Button>
       )}
 
-      {/* Book Now */}
-      <Button variant="outline" onClick={handleBookNow}>
-        Book Now
-      </Button>
+      {/* Book Now — EventPlug uses quote-based booking */}
+      {hasBookableServices ? (
+        isAuthenticated ? (
+          <Button variant="outline" onClick={() => setQuoteOpen(true)}>
+            Book Now
+          </Button>
+        ) : (
+          <Button variant="outline" asChild>
+            <a href={loginRedirect}>Book Now</a>
+          </Button>
+        )
+      ) : null}
 
       {/* Message */}
       {isAuthenticated ? (

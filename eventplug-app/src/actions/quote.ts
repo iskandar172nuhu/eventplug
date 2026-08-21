@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth/guards"
 import { db } from "@/lib/db"
 import { QuoteRequestSchema, QuotationSchema } from "@/lib/validations/quote"
 import { createQuoteConversation } from "@/lib/modules/messaging/conversations"
+import { notifyVendorNewQuoteRequest, notifyCustomerQuoteResponse, notifyVendorQuoteAccepted, notifyVendorQuoteDeclined } from "@/lib/modules/notifications/create"
 import { revalidatePath } from "next/cache"
 
 type ActionResult =
@@ -51,8 +52,12 @@ export async function submitQuoteRequestAction(formData: FormData): Promise<Acti
   // Create linked conversation
   const vendor = await db.vendorProfile.findUniqueOrThrow({
     where: { id: parsed.data.vendorId },
+    include: { user: { select: { id: true } } },
   })
   await createQuoteConversation(quoteRequest.id, customerProfile.id, vendor.id)
+
+  // Notify vendor
+  await notifyVendorNewQuoteRequest(vendor.user.id, customerProfile.fullName, parsed.data.eventType)
 
   revalidatePath("/dashboard/customer/quotes")
   revalidatePath("/dashboard/vendor/quotes")
@@ -80,6 +85,16 @@ export async function submitQuotationAction(formData: FormData): Promise<ActionR
     where: { id: parsed.data.quoteRequestId },
     data: { status: "SENT" },
   })
+
+  // Notify customer
+  const quoteRequest = await db.quoteRequest.findUniqueOrThrow({
+    where: { id: parsed.data.quoteRequestId },
+    include: {
+      customer: { include: { user: { select: { id: true } } } },
+      vendor: { select: { businessName: true } },
+    },
+  })
+  await notifyCustomerQuoteResponse(quoteRequest.customer.user.id, quoteRequest.vendor.businessName, quoteRequest.id)
 
   revalidatePath("/dashboard/customer/quotes")
   revalidatePath("/dashboard/vendor/quotes")
@@ -117,6 +132,17 @@ export async function acceptQuotationAction(quotationId: string): Promise<Action
     data: { status: "ACCEPTED" },
   })
 
+  // Notify vendor
+  const customer = await db.customerProfile.findUniqueOrThrow({
+    where: { id: quotation.quoteRequest.customerId },
+    select: { fullName: true },
+  })
+  const vendor = await db.vendorProfile.findUniqueOrThrow({
+    where: { id: quotation.quoteRequest.vendorId },
+    include: { user: { select: { id: true } } },
+  })
+  await notifyVendorQuoteAccepted(vendor.user.id, customer.fullName)
+
   revalidatePath("/dashboard/customer/bookings")
   revalidatePath("/dashboard/vendor/bookings")
   return { success: true, bookingId: booking.id }
@@ -125,10 +151,26 @@ export async function acceptQuotationAction(quotationId: string): Promise<Action
 export async function declineQuotationAction(quotationId: string): Promise<ActionResult> {
   await requireAuth("CUSTOMER")
 
+  const quotation = await db.quotation.findUniqueOrThrow({
+    where: { id: quotationId },
+    include: { quoteRequest: true },
+  })
+
   await db.quotation.update({
     where: { id: quotationId },
     data: { status: "DECLINED" },
   })
+
+  // Notify vendor
+  const customer = await db.customerProfile.findUniqueOrThrow({
+    where: { id: quotation.quoteRequest.customerId },
+    select: { fullName: true },
+  })
+  const vendor = await db.vendorProfile.findUniqueOrThrow({
+    where: { id: quotation.quoteRequest.vendorId },
+    include: { user: { select: { id: true } } },
+  })
+  await notifyVendorQuoteDeclined(vendor.user.id, customer.fullName)
 
   revalidatePath("/dashboard/customer/quotes")
   return { success: true }

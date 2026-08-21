@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth/guards"
 import { db } from "@/lib/db"
 import { createDirectConversation } from "@/lib/modules/messaging/conversations"
+import { notifyVendorNewMessage } from "@/lib/modules/notifications/create"
 
 export const dynamic = "force-dynamic"
 
@@ -21,10 +22,12 @@ export async function POST(request: Request) {
   try {
     const customerProfile = await db.customerProfile.findUniqueOrThrow({
       where: { userId: session.user.id },
+      select: { id: true, fullName: true },
     })
 
     const vendorProfile = await db.vendorProfile.findUniqueOrThrow({
       where: { id: vendorId },
+      select: { id: true, userId: true },
     })
 
     // Get or create conversation
@@ -44,6 +47,9 @@ export async function POST(request: Request) {
       where: { id: conversation.id },
       data: { updatedAt: new Date() },
     })
+
+    // Notify vendor
+    await notifyVendorNewMessage(vendorProfile.userId, customerProfile.fullName, conversation.id)
 
     return NextResponse.json({ success: true, conversationId: conversation.id })
   } catch (error) {

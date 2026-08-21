@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { FileText } from "lucide-react"
 
 import { requireAuth } from "@/lib/auth/guards"
@@ -5,6 +6,7 @@ import { db } from "@/lib/db"
 import { EmptyState, CurrencyDisplay } from "@/components/shared"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 
 function quoteStatusBadge(status: string) {
   switch (status) {
@@ -66,39 +68,46 @@ export default async function VendorQuotesPage() {
 
       <div className="grid gap-4">
         {quoteRequests.map((request) => (
-          <Card key={request.id}>
-            <CardContent className="p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium truncate">{request.customer.fullName}</p>
-                    {quoteStatusBadge(request.status)}
+          <Link key={request.id} href={`/dashboard/vendor/quotes/${request.id}`}>
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium truncate">{request.customer.fullName}</p>
+                      {quoteStatusBadge(request.status)}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                      <span>{request.eventType}</span>
+                      <span>·</span>
+                      <span>
+                        {new Date(request.eventDate).toLocaleDateString("en-GH", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                      <span>·</span>
+                      <span>{request.eventLocation}</span>
+                      <span>·</span>
+                      <span>{request.guestCount} guests</span>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                    <span>{request.eventType}</span>
-                    <span>·</span>
-                    <span>
-                      {new Date(request.eventDate).toLocaleDateString("en-GH", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                    <span>·</span>
-                    <span>{request.eventLocation}</span>
-                    <span>·</span>
-                    <span>{request.guestCount} guests</span>
+                  <div className="flex items-center gap-3">
+                    {request.budget && (
+                      <CurrencyDisplay
+                        amount={Number(request.budget)}
+                        className="text-sm font-medium shrink-0"
+                      />
+                    )}
+                    <Button variant="outline" size="sm">
+                      {request.status === "PENDING" ? "Respond" : "View"}
+                    </Button>
                   </div>
                 </div>
-                {request.budget && (
-                  <CurrencyDisplay
-                    amount={Number(request.budget)}
-                    className="text-sm font-medium shrink-0"
-                  />
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
     </div>

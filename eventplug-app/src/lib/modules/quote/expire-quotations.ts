@@ -13,12 +13,12 @@ export async function expireQuotations() {
     await db.quotation.update({ where: { id: quotation.id }, data: { status: "EXPIRED" } })
 
     // Notify customer
-    await createNotification(
-      quotation.quoteRequest.customer.user.id,
-      "Quotation Expired",
-      "A quotation you received has expired.",
-      "/dashboard/customer/quotes"
-    )
+    await createNotification({
+      userId: quotation.quoteRequest.customer.user.id,
+      title: "Quotation Expired",
+      body: "A quotation you received has expired.",
+      link: "/dashboard/customer/quotes",
+    })
   }
 
   return { expired: expiredQuotations.length }
