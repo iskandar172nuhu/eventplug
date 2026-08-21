@@ -28,3 +28,13 @@ output "github_actions_role_arn" {
   description = "IAM role assumed by GitHub Actions through OIDC"
   value       = module.github_actions.role_arn
 }
+
+output "secret_rotation_redeploy_lambda" {
+  description = "Lambda function that redeploys ECS after RDS secret rotation"
+  value       = module.secret_rotation_redeploy.lambda_function_name
+}
+
+output "secret_rotation_event_rule" {
+  description = "EventBridge rule monitoring RDS secret rotation"
+  value       = module.secret_rotation_redeploy.event_rule_name
+}

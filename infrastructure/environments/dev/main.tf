@@ -113,3 +113,14 @@ module "github_actions" {
 
   ecs_task_execution_role_arn = module.ecs.task_execution_role_arn
 }
+
+module "secret_rotation_redeploy" {
+  source = "../../modules/secret-rotation-redeploy"
+
+  project_name = var.project_name
+  environment  = var.environment
+
+  secret_arn       = module.database.master_user_secret_arn
+  ecs_cluster_name = module.ecs.cluster_name
+  ecs_service_name = module.ecs.service_name
+}
