@@ -2,6 +2,7 @@
 import { requireAuth } from "@/lib/auth/guards"
 import { db } from "@/lib/db"
 import { ReviewSchema } from "@/lib/validations/review"
+import { createNotification } from "@/lib/modules/notifications/create"
 import { revalidatePath } from "next/cache"
 
 export async function submitReviewAction(formData: FormData) {
@@ -48,6 +49,18 @@ export async function submitReviewAction(formData: FormData) {
       averageRating: Math.round(avgRating * 10) / 10,
       totalReviews: allReviews.length,
     },
+  })
+
+  // Notify vendor about the new review
+  const vendor = await db.vendorProfile.findUniqueOrThrow({
+    where: { id: booking.vendorId },
+    select: { userId: true },
+  })
+  await createNotification({
+    userId: vendor.userId,
+    title: "New Review",
+    body: `${customerProfile.fullName} left a ${rating}-star review`,
+    link: "/dashboard/vendor/reviews",
   })
 
   revalidatePath(`/vendors/${booking.vendorId}`)

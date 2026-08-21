@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation"
 import { getSession } from "@/lib/auth/guards"
 import { db } from "@/lib/db"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { BookingStatusBadge } from "@/components/dashboard/BookingStatusBadge"
 import { CurrencyDisplay } from "@/components/shared"
 import { VendorBookingDetailActions } from "./detail-actions"
@@ -45,6 +46,13 @@ export default async function VendorBookingDetailPage({ params }: VendorBookingD
   if (!booking) {
     notFound()
   }
+
+  const vendorAmountPaid = Number(booking.amountPaid)
+  const vendorTotalAmount = Number(booking.totalAmount)
+  const vendorOutstandingBalance = vendorTotalAmount - vendorAmountPaid
+  const totalPayments = booking.payments
+    .filter((p) => p.status === "SUCCESS")
+    .reduce((sum, p) => sum + Number(p.amount), 0)
 
   return (
     <div className="space-y-6">
@@ -94,6 +102,16 @@ export default async function VendorBookingDetailPage({ params }: VendorBookingD
             <div>
               <p className="text-sm text-muted-foreground">Amount Paid</p>
               <CurrencyDisplay amount={booking.amountPaid.toString()} className="font-medium" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Outstanding Balance</p>
+              {vendorOutstandingBalance <= 0 ? (
+                <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                  Fully Paid
+                </Badge>
+              ) : (
+                <CurrencyDisplay amount={vendorOutstandingBalance.toString()} className="font-medium" />
+              )}
             </div>
           </div>
           {booking.notes && (
@@ -170,6 +188,7 @@ export default async function VendorBookingDetailPage({ params }: VendorBookingD
       <VendorBookingDetailActions
         bookingId={booking.id}
         status={booking.status}
+        totalPayments={totalPayments}
       />
     </div>
   )

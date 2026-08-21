@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth/guards"
 import { db } from "@/lib/db"
 import { assertValidTransition } from "@/lib/modules/booking/status-machine"
 import { reserveInventory } from "@/lib/modules/inventory/reserve"
+import { createNotification } from "@/lib/modules/notifications/create"
 import { BookingStatus } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 import type { CartItem } from "@/lib/cart/cart-context"
@@ -33,7 +34,13 @@ export async function updateBookingStatusAction(
 export async function cancelBookingAction(bookingId: string): Promise<ActionResult> {
   const session = await requireAuth()
 
-  const booking = await db.booking.findUniqueOrThrow({ where: { id: bookingId } })
+  const booking = await db.booking.findUniqueOrThrow({
+    where: { id: bookingId },
+    include: {
+      customer: { select: { userId: true, fullName: true } },
+      vendor: { select: { userId: true, businessName: true } },
+    },
+  })
 
   // Customers can cancel PENDING/AWAITING_DEPOSIT without approval
   // CONFIRMED cancellation also allowed but triggers vendor notification
@@ -43,6 +50,25 @@ export async function cancelBookingAction(bookingId: string): Promise<ActionResu
     where: { id: bookingId },
     data: { status: "CANCELLED" },
   })
+
+  // Notify the other party about the cancellation
+  if (session.user.role === "CUSTOMER") {
+    // Customer cancelled — notify vendor
+    await createNotification({
+      userId: booking.vendor.userId,
+      title: "Booking Cancelled",
+      body: `${booking.customer.fullName} cancelled their booking #${bookingId.slice(-8)}`,
+      link: `/dashboard/vendor/bookings/${bookingId}`,
+    })
+  } else if (session.user.role === "VENDOR") {
+    // Vendor cancelled — notify customer
+    await createNotification({
+      userId: booking.customer.userId,
+      title: "Booking Cancelled",
+      body: `${booking.vendor.businessName} cancelled your booking #${bookingId.slice(-8)}`,
+      link: `/dashboard/customer/bookings/${bookingId}`,
+    })
+  }
 
   // If vendor cancels a CONFIRMED booking, flag for admin review
   if (booking.status === "CONFIRMED" && session.user.role === "VENDOR") {
@@ -57,7 +83,13 @@ export async function cancelBookingAction(bookingId: string): Promise<ActionResu
 export async function markBookingCompleteAction(bookingId: string): Promise<ActionResult> {
   await requireAuth("VENDOR")
 
-  const booking = await db.booking.findUniqueOrThrow({ where: { id: bookingId } })
+  const booking = await db.booking.findUniqueOrThrow({
+    where: { id: bookingId },
+    include: {
+      customer: { select: { userId: true } },
+      vendor: { select: { businessName: true } },
+    },
+  })
 
   assertValidTransition(booking.status, "COMPLETED")
 
@@ -70,6 +102,14 @@ export async function markBookingCompleteAction(bookingId: string): Promise<Acti
   await db.vendorProfile.update({
     where: { id: booking.vendorId },
     data: { totalBookings: { increment: 1 } },
+  })
+
+  // Notify customer that booking is completed
+  await createNotification({
+    userId: booking.customer.userId,
+    title: "Booking Completed",
+    body: `${booking.vendor.businessName} marked your booking #${bookingId.slice(-8)} as completed. You can now leave a review.`,
+    link: `/dashboard/customer/bookings/${bookingId}`,
   })
 
   revalidatePath("/dashboard/customer/bookings")

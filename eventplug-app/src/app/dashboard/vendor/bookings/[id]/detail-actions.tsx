@@ -10,11 +10,13 @@ import { markBookingCompleteAction, cancelBookingAction } from "@/actions/bookin
 interface VendorBookingDetailActionsProps {
   bookingId: string
   status: BookingStatus
+  totalPayments: number
 }
 
 export function VendorBookingDetailActions({
   bookingId,
   status,
+  totalPayments,
 }: VendorBookingDetailActionsProps) {
   const [loading, setLoading] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -37,6 +39,10 @@ export function VendorBookingDetailActions({
   if (!canMarkComplete && !canCancel) {
     return null
   }
+
+  const cancelDescription = totalPayments > 0
+    ? `This booking has GH₵${totalPayments.toFixed(2)} in successful payments. Cancelling the booking will not automatically refund these payments. Any refund must be handled separately.`
+    : "Are you sure you want to cancel this booking? This action will be flagged for admin review."
 
   return (
     <>
@@ -74,7 +80,7 @@ export function VendorBookingDetailActions({
         description={
           confirmAction === "complete"
             ? "Are you sure this booking is complete? The customer will be notified and can leave a review."
-            : "Are you sure you want to cancel this booking? This action will be flagged for admin review."
+            : cancelDescription
         }
         confirmText={confirmAction === "complete" ? "Mark Complete" : "Cancel"}
         variant={confirmAction === "cancel" ? "destructive" : "default"}

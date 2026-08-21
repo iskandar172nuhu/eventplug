@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation"
 import { getSession } from "@/lib/auth/guards"
 import { db } from "@/lib/db"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { BookingStatusBadge } from "@/components/dashboard/BookingStatusBadge"
 import { CurrencyDisplay } from "@/components/shared"
 import { CustomerBookingDetailActions } from "./booking-detail-actions"
@@ -53,6 +54,14 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
   const canReview = booking.status === "COMPLETED" && !booking.review
   const canPayDeposit = booking.status === "AWAITING_DEPOSIT"
 
+  const amountPaid = Number(booking.amountPaid)
+  const totalAmount = Number(booking.totalAmount)
+  const canPayBalance = booking.status === "CONFIRMED" && amountPaid < totalAmount
+  const outstandingBalance = totalAmount - amountPaid
+  const totalPayments = booking.payments
+    .filter((p) => p.status === "SUCCESS")
+    .reduce((sum, p) => sum + Number(p.amount), 0)
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -96,6 +105,16 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
             <div>
               <p className="text-sm text-muted-foreground">Amount Paid</p>
               <CurrencyDisplay amount={booking.amountPaid.toString()} className="font-medium" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Outstanding Balance</p>
+              {outstandingBalance <= 0 ? (
+                <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                  Fully Paid
+                </Badge>
+              ) : (
+                <CurrencyDisplay amount={outstandingBalance.toString()} className="font-medium" />
+              )}
             </div>
           </div>
           {booking.notes && (
@@ -175,6 +194,10 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
         canDispute={canDispute}
         canReview={canReview}
         canPayDeposit={canPayDeposit}
+        canPayBalance={canPayBalance}
+        amountPaid={amountPaid}
+        totalAmount={totalAmount}
+        totalPayments={totalPayments}
       />
     </div>
   )
