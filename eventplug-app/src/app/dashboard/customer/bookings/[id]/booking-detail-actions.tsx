@@ -36,7 +36,7 @@ export function CustomerBookingDetailActions({
       <div className="flex flex-wrap gap-3">
         {canPayDeposit && (
           <Button asChild>
-            <Link href={`/dashboard/customer/bookings/${bookingId}/pay`}>
+            <Link href={`/dashboard/customer/payments/${bookingId}`}>
               Pay Deposit
             </Link>
           </Button>

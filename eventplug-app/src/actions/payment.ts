@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { getPaymentProvider } from "@/lib/payment-providers"
 import { PaymentType } from "@prisma/client"
 import { revalidatePath } from "next/cache"
+import { createNotification } from "@/lib/modules/notifications/create"
 
 export async function initiatePaymentAction(
   bookingId: string,
@@ -21,6 +22,11 @@ export async function initiatePaymentAction(
 
   if (booking.customerId !== customerProfile.id) {
     return { success: false, error: "Not your booking" }
+  }
+
+  // Prevent payment on cancelled bookings
+  if (booking.status === "CANCELLED") {
+    return { success: false, error: "Cannot pay for a cancelled booking" }
   }
 
   // Calculate amount based on payment type
@@ -89,8 +95,30 @@ export async function initiatePaymentAction(
       },
     })
 
+    // Notify vendor about received payment
+    const vendor = await db.vendorProfile.findUniqueOrThrow({
+      where: { id: booking.vendorId },
+      select: { userId: true },
+    })
+    await createNotification({
+      userId: vendor.userId,
+      title: "Payment Received",
+      body: `A ${paymentType.toLowerCase()} payment of GH₵ ${amount.toFixed(2)} was received`,
+      link: "/dashboard/vendor/payments",
+    })
+
+    // Notify customer about successful payment
+    await createNotification({
+      userId: session.user.id,
+      title: "Payment Successful",
+      body: `Your ${paymentType.toLowerCase()} payment of GH₵ ${amount.toFixed(2)} was processed successfully`,
+      link: `/dashboard/customer/bookings/${bookingId}`,
+    })
+
     revalidatePath("/dashboard/customer/bookings")
+    revalidatePath("/dashboard/customer/payments")
     revalidatePath("/dashboard/vendor/bookings")
+    revalidatePath("/dashboard/vendor/payments")
     return { success: true, paymentId: payment.id }
   } else {
     await db.payment.update({
