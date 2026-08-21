@@ -64,18 +64,30 @@ jobs:
             --query taskDefinition \
             > task-definition.json
 
-      - name: Remove read-only ECS task definition fields
+            - name: Remove read-only ECS task definition fields
         run: |
-          jq 'del(
-            .taskDefinitionArn,
-            .revision,
-            .status,
-            .requiresAttributes,
-            .compatibilities,
-            .registeredAt,
-            .registeredBy,
-            .enableFaultInjection
-          )' task-definition.json > task-definition-clean.json
+          jq '
+            del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy,
+              .enableFaultInjection
+            )
+            |
+            .containerDefinitions |= map(
+              .secrets = (
+                (.secrets // [])
+                | map(select(
+                    .name != "ADMIN_EMAIL" and
+                    .name != "ADMIN_PASSWORD"
+                  ))
+              )
+            )
+          ' task-definition.json > task-definition-clean.json
 
       - name: Update container image
         run: |
