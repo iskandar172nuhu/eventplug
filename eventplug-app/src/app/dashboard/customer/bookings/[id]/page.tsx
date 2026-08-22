@@ -49,7 +49,7 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
     notFound()
   }
 
-  const canCancel = ["PENDING", "AWAITING_DEPOSIT"].includes(booking.status)
+  const canCancel = ["PENDING", "AWAITING_DEPOSIT", "CONFIRMED"].includes(booking.status)
   const canDispute = ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.status) && !booking.dispute
   const canReview = booking.status === "COMPLETED" && !booking.review
   const canPayDeposit = booking.status === "AWAITING_DEPOSIT"
@@ -190,6 +190,7 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
       {/* Actions */}
       <CustomerBookingDetailActions
         bookingId={booking.id}
+        vendorName={booking.vendor.businessName}
         canCancel={canCancel}
         canDispute={canDispute}
         canReview={canReview}
