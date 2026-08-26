@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "eventplug-app/**"
+      - "infrastructure/**"
       - ".github/workflows/deploy-dev.yml"
 
 permissions:
@@ -22,8 +23,34 @@ env:
   ECS_TASK_DEFINITION: ${{ vars.ECS_TASK_DEFINITION }}
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      infrastructure: ${{ steps.filter.outputs.infrastructure }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Detect changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            app:
+              - 'eventplug-app/**'
+              - '.github/workflows/deploy-dev.yml'
+            infrastructure:
+              - 'infrastructure/**'
+              - '.github/workflows/deploy-dev.yml'
+
   quality:
     name: Code Quality
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
 
     defaults:
@@ -55,6 +82,10 @@ jobs:
 
   security:
     name: Security Scan
+    needs: changes
+    if: |
+      needs.changes.outputs.app == 'true' ||
+      needs.changes.outputs.infrastructure == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -88,6 +119,10 @@ jobs:
     needs:
       - quality
       - security
+    if: |
+      always() &&
+      needs.quality.result == 'success' &&
+      needs.security.result == 'success'
     runs-on: ubuntu-latest
 
     steps:
