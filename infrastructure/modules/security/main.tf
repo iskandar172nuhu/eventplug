@@ -35,9 +35,11 @@ resource "aws_vpc_security_group_ingress_rule" "alb_https" {
 resource "aws_vpc_security_group_egress_rule" "alb_egress" {
   security_group_id = aws_security_group.alb.id
 
-  description = "Allow outbound traffic"
-  ip_protocol = "-1"
-  cidr_ipv4   = "0.0.0.0/0"
+  description                  = "Allow ALB traffic to ECS tasks only"
+  ip_protocol                  = "tcp"
+  from_port                    = var.app_port
+  to_port                      = var.app_port
+  referenced_security_group_id = aws_security_group.ecs.id
 }
 
 
@@ -65,6 +67,10 @@ resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
   referenced_security_group_id = aws_security_group.alb.id
 }
 
+# DEV ONLY: ECS currently requires outbound internet/AWS service access.
+# Replace this exception when ECS moves to private application subnets
+# with controlled egress via NAT and/or VPC endpoints.
+#trivy:ignore:AWS-0104
 resource "aws_vpc_security_group_egress_rule" "ecs_egress" {
   security_group_id = aws_security_group.ecs.id
 

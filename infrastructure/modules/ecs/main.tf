@@ -161,6 +161,7 @@ resource "aws_lb" "this" {
   subnets         = var.public_subnet_ids
 
   enable_deletion_protection = false
+  drop_invalid_header_fields = true
 
   tags = {
     Name = "${var.project_name}-${var.environment}-alb"
@@ -191,6 +192,10 @@ resource "aws_lb_target_group" "this" {
   }
 }
 
+# DEV ONLY: HTTP is temporarily accepted until the EventPlug domain,
+# ACM certificate, and HTTPS listener are provisioned.
+# Remove this exception when TLS is enabled.
+#trivy:ignore:AWS-0054
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = 80
