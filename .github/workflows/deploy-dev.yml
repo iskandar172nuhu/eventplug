@@ -241,6 +241,3 @@ jobs:
             --services "${{ env.ECS_SERVICE }}" \
             --query 'services[0].{Status:status,Desired:desiredCount,Running:runningCount,TaskDefinition:taskDefinition}' \
             --output table
-
-echo "" >> .github/workflows/deploy-dev.yml
-            
